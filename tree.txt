@@ -1,0 +1,14 @@
+.
+├── index.html
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── src
+│   ├── KickVODPlayer.jsx
+│   ├── index.css
+│   └── main.jsx
+├── tailwind.config.js
+├── tree.txt
+└── vite.config.js
+
+533 directories, 7266 files

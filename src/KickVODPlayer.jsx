@@ -30,63 +30,38 @@ export default function KickVODPlayer() {
     try {
       setIsLoading(true);
       setError('');
+      
+      console.warn('Extracting source from VOD page:', vodPageUrl);
+      // Fetch the VOD page
+      const corsProxy = 'https://proxy.cors.sh/';
+      const finalUrl = vodPageUrl; //corsProxy + vodPageUrl;
+      console.log(proxyUrl);
+      const response = await fetch(proxyUrl);
 
-      console.warn('From: ', vodPageUrl, 'Fetching VOD page...');
+      if (!response.ok) throw new Error('Failed to fetch VOD page');
 
-      // helper to try a fetch, optionally via a public CORS proxy
-      const tryFetchHtml = async (url, viaProxy = false) => {
-        const fetchUrl = viaProxy
-          ? `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
-          : url;
-        const response = await fetch(fetchUrl);
-        if (!response.ok) throw new Error(`Failed to fetch VOD page (${response.status})`);
-        return await response.text();
-      };
-
-      let html;
-      // first try direct fetch (may fail due to CORS), then fall back to a proxy
-      try {
-        html = await tryFetchHtml(vodPageUrl, false);
-        console.warn('Direct fetch succeeded');
-      } catch (err) {
-        console.warn('Direct fetch failed, attempting via CORS proxy...', err.message);
-        try {
-          html = await tryFetchHtml(vodPageUrl, true);
-          console.warn('Proxy fetch succeeded');
-        } catch (proxyErr) {
-          console.error('Both direct fetch and proxy fetch failed:', proxyErr);
-          throw new Error('Failed to fetch VOD page due to CORS; run this app from a server or configure a CORS proxy.');
-        }
+      console.log('Fetched VOD page successfully');
+      
+      const html = await response.text();
+      
+      // Find the script tag with the source URL
+      const sourceMatch = html.match(/"source\\?":\\?"(https:\/\/stream\.kick\.com\/ivs\/[^"]+master\.m3u8)\\?"/);
+      
+      if (!sourceMatch) {
+        throw new Error('Could not find video source in page. Make sure this is a valid Kick VOD URL.');
       }
-
-      console.warn('From: ', vodPageUrl, 'Fetched VOD page HTML (truncated):', html ? html.slice(0, 200) + (html.length > 200 ? '...' : '') : html);
-
-      // Try a couple of patterns to find the master playlist URL
-      let sourceUrl = null;
-      // Pattern 1: raw URL in HTML
-      const m1 = html.match(/https:\/\/stream\.kick\.com\/ivs\/[^"'\s>]+master\.m3u8/);
-      if (m1) {
-        sourceUrl = m1[0];
-      } else {
-        // Pattern 2: JSON-ish escaped field
-        const m2 = html.match(/"source\\?":\\?"(https:\/\/stream\.kick\.com\/ivs\/[^"]+master\.m3u8)\\?"/);
-        if (m2) sourceUrl = m2[1];
-      }
-
-      if (!sourceUrl) {
-        throw new Error('Could not find video source in page. Make sure this is a valid Kick VOD URL and the page is accessible.');
-      }
-
-      // Remove escaped quotes/backslashes if any
+      
+      let sourceUrl = sourceMatch[1];
+      // Remove escaped quotes if any
       sourceUrl = sourceUrl.replace(/\\\"/g, '"').replace(/\\/g, '');
-
+      
       console.log('Found source URL:', sourceUrl);
-
+      
       // Replace master.m3u8 with quality setting
       const baseUrl = sourceUrl.replace('/master.m3u8', `/${quality}/`);
-
+      
       console.log('Base URL:', baseUrl);
-
+      
       return baseUrl;
     } catch (err) {
       console.error('Error extracting source:', err);
