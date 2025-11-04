@@ -17,7 +17,7 @@
 		"next": "15.3.3",
 		"react": "19.0.0",
 		"react-dom": "19.0.0",
-	    "lucide-react": "^0.372.0"
+	    "lucide-react": "next"
 	},
 	"devDependencies": {
 		"@eslint/eslintrc": "3",
